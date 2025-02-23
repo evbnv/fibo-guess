@@ -8,81 +8,82 @@ import (
 func main() {
 	done := make(chan struct{})
 	quit := make(chan struct{})
+	fnum := make(chan int)
 
-	go printFibonacci(done)
+	go printFibonacci(done, fnum)
 
-	go fiboGuess(done, quit)
+	go fiboGuess(done, quit, fnum)
 
 	<-quit
 }
 
-func fiboGuess(done, quess chan struct{}) {
-	var n int
+func fiboGuess(done, quit chan struct{}, fnum chan int) {
+	var n, q int
+	go func() {
+		for q = range fnum {
+		}
+	}()
 	for {
-		fmt.Scan(&n)
-		if isFibonacci(n) {
-			fmt.Println("Congratulations! You guessed the correct Fibonacci number.")
-			done <- struct{}{}
+		fmt.Scanln(&n)
+		if isFibonacci(n, q) {
+			fmt.Println("Cool! You are better than this program.")
 
-			go spamThanks(quess)
+			done <- struct{}{}
+			go spamThanks(quit)
 
 			return
-		} else {
-			fmt.Println("Sorry, that's not a Fibonacci number. Try again.")
 		}
 	}
 }
 
-func printFibonacci(done chan struct{}) {
+func isFibonacci(n, q int) bool {
+	return n == fibonacci(q+1)
+}
+
+func printFibonacci(done chan struct{}, fnum chan int) {
 	for i := 1; ; i++ {
+		time.Sleep(time.Second * 1)
 		select {
 		case <-done:
+			close(fnum)
 			return
 		default:
-			time.Sleep(time.Second * 3)
-			fmt.Println("Fibonacci number ", i, "=", fibonacci(i))
+			res := fibonacci(i)
+			fnum <- i
+			fmt.Println("Fibonacci number ", i, "=", res)
 		}
 	}
 }
 
 func fibonacci(n int) int {
-	first, second := 1, 1
+	first, second := 0, 1
 	for i := 1; i < n; i++ {
 		first, second = second, first+second
 	}
 	return first
 }
 
-func isFibonacci(n int) bool {
-	for i := 1; ; i++ {
-		fib := fibonacci(i)
-		if fib > n {
-			return false
-		}
-		if fib == n {
-			return true
-		}
-	}
-}
-
 func spamThanks(quit chan struct{}) {
 	var stopWord string
 
 	go func() {
-		select {
-		case <-quit:
-			return
-		default:
-			for {
-				fmt.Scan(&stopWord)
+		for {
+			time.Sleep(time.Second * 1)
+			select {
+			case <-quit:
+				return
+			default:
+				fmt.Println("Молодец")
 			}
 		}
 	}()
 
-	for stopWord != "thx" && stopWord != "спс" {
-		time.Sleep(time.Second * 2)
-		fmt.Println("Молодец")
+	for {
+		fmt.Scanln(&stopWord)
+		if stopWord == "thx" || stopWord == "спс" {
+			fmt.Println("Спасибо, до свидания!")
+			quit <- struct{}{}
+			return
+		}
 	}
-	fmt.Println("Спасибо, до свидания!")
-	quit <- struct{}{}
 }
