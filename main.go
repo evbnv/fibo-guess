@@ -68,12 +68,12 @@ func spamThanks(quit chan struct{}) {
 
 	go func() {
 		for {
-			time.Sleep(time.Second * 1)
+			fmt.Println("Молодец")
 			select {
 			case <-quit:
 				return
 			default:
-				fmt.Println("Молодец")
+				time.Sleep(time.Second * 1)
 			}
 		}
 	}()
